@@ -1,0 +1,77 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+//Modelos do nosso DB
+
+model User{ 
+  id                  String @id @default(uuid())
+  name                String
+  email               String
+  adress              String?                          //Ele pode ter um endereço registrado ou nao
+  password            String
+  stripe_customer_id  String?              // E opcional pois o usuario pode nao ter assinatura e ainda sim ser um usuario
+
+  created_at          DateTime? @default(now())    //Serve para ter um controle ou filtrar dps de quando esse item foi criado e atualizado
+  updated_at          DateTime? @default(now())
+
+  @@map("users")                         //Serve para mapearmos nossa tabela
+  subscriptions Subscription?
+  haircuts Haircut[] //1 User pode ter varios modelos de cortes relacionados, aqui estamos aplicando a relaçao com o modelo Haircut
+  service Service[]
+}
+
+model Subscription{
+  id          String @id
+  status      String
+  priceId     String
+  created_at  DateTime? @default(now())
+  updated_at  DateTime? @default(now())
+
+  // Mapeamento para a tabela no banco de dados chamada "subscriptions"
+  @@map("subscriptions") 
+  // Definição do campo userId como String, exigindo valores únicos
+  userId String @unique
+  // Estabelecimento da relação entre o modelo Subscription e a tabela User
+  user User @relation(fields: [userId], references: [id])
+  // O campo userId é utilizado como chave estrangeira( é um conceito em bancos de dados relacionais que estabelece uma relação entre duas tabelas.) para vincular as duas tabelas
+}
+
+model Haircut{
+  id          String @id @default(uuid())
+  name        String
+  price       Float
+  status      Boolean @default(true)
+  created_at  DateTime? @default(now())
+  updated_at  DateTime? @default(now())
+
+  @@map("haircuts")
+  user User @relation(fields: [user_id], references: [id])
+  user_id String
+  service Service[]
+}
+
+model Service{
+  id          String @id @default(uuid())
+  customer    String
+  created_at  DateTime? @default(now())
+  updated_at  DateTime? @default(now())
+
+  @@map("services")
+  haircut Haircut @relation(fields: [haircut_id], references: [id])
+  haircut_id String //Estamos criando a relaçao do services com o Haircuts
+
+  user User @relation(fields: [user_id], references: [id]) //O serviço tambem vai estar atrelado a um usuario
+  user_id String
+}
